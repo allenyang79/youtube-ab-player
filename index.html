@@ -30,9 +30,9 @@
   }
   main { max-width: 960px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 1.25rem; margin: 4px 0 14px; font-weight: 600; letter-spacing: .02em; }
-  h2 { font-size: 1rem; margin: 0 0 10px; font-weight: 600; }
+  h2 { font-size: 1rem; margin: 0; font-weight: 600; }
 
-  button, input { font: inherit; color: inherit; }
+  button, input, select { font: inherit; color: inherit; }
   button {
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     padding: 10px 16px; cursor: pointer; min-height: 44px; touch-action: manipulation;
@@ -42,13 +42,17 @@
   button:disabled { opacity: .4; cursor: not-allowed; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
   button.save { border-color: var(--ok); color: var(--ok); }
+  select {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 8px 10px; min-height: 44px;
+  }
 
   .load-bar { display: flex; gap: 8px; margin-bottom: 12px; }
   .load-bar input {
     flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 10px 12px; min-height: 44px;
   }
-  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
   .message { padding: 10px 12px; border-radius: var(--radius); margin-bottom: 12px; font-size: .95rem; }
   .message.error { background: rgba(242,139,130,.12); border: 1px solid var(--err); color: var(--err); }
@@ -69,30 +73,52 @@
     margin-top: 12px; background: var(--panel); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 12px;
   }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .edit-label { font-size: .9rem; color: var(--muted); }
+  .edit-label strong { color: var(--text); font-weight: 600; }
+
+  .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
   .ab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .ab-cell { display: flex; align-items: center; gap: 10px; }
-  .ab-cell button { flex: 0 0 auto; }
-  .mono {
-    font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  .ab-cell { display: flex; align-items: center; gap: 6px; }
+  .ab-cell .mark { flex: 0 0 auto; }
+  .nudge { width: 52px; padding: 0; font-size: .85rem; flex: 0 0 auto; }
+  .time-input {
+    width: 7.2em; min-width: 0; text-align: center; font-size: 1.05rem;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 4px; min-height: 44px;
   }
-  .ab-cell output { font-size: 1.15rem; }
-  #markA { border-color: var(--a-color); color: var(--a-color); }
-  #markB { border-color: var(--b-color); color: var(--b-color); }
-  #aTime { color: var(--a-color); }
-  #bTime { color: var(--b-color); }
+  #markA, #aNudgeMinus, #aNudgePlus { border-color: var(--a-color); color: var(--a-color); }
+  #markB, #bNudgeMinus, #bNudgePlus { border-color: var(--b-color); color: var(--b-color); }
+  #aInput { color: var(--a-color); }
+  #bInput { color: var(--b-color); }
 
   .row2 { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-  .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; min-height: 44px; margin-left: auto; }
+  .spacer { flex: 1; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; min-height: 44px; }
   .toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .speed { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .9rem; }
 
   .status { margin-top: 10px; color: var(--muted); font-size: .9rem; min-height: 1.5em; }
   .status.looping { color: var(--ok); }
+
+  .shortcuts { margin-top: 8px; font-size: .85rem; color: var(--muted); }
+  .shortcuts summary { cursor: pointer; padding: 4px 0; }
+  .shortcuts dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 6px 0 0; }
+  .shortcuts dt { text-align: right; }
+  .shortcuts dd { margin: 0; }
+  kbd {
+    display: inline-block; min-width: 1.6em; padding: 0 5px; text-align: center;
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px;
+    background: var(--panel-2); color: var(--text); font: .8rem/1.6 ui-monospace, Menlo, Consolas, monospace;
+  }
+  .kb-hint { color: var(--warn); font-size: .85rem; margin-top: 6px; }
 
   /* 區段清單 */
   .seg-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
   .seg-empty { color: var(--muted); font-size: .9rem; padding: 6px 0; }
   .segment {
-    display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px;
+    display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 10px;
     background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
     padding: 6px 8px; transition: border-color .15s, background .15s;
   }
@@ -107,29 +133,32 @@
   .segment .range { color: var(--muted); font-size: .9rem; white-space: nowrap; }
   .segment .range .a { color: var(--a-color); }
   .segment .range .b { color: var(--b-color); }
+  .segment .loops { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: .85rem; white-space: nowrap; }
+  .segment .loops input {
+    width: 3.4em; text-align: center; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 2px; min-height: 36px;
+  }
   .segment .del-btn { width: 44px; padding: 0; color: var(--muted); }
   .segment .del-btn:hover { color: var(--err); border-color: var(--err); }
 
-  .seg-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-  .seg-head h2 { margin: 0; }
   .export-box { margin-top: 12px; }
   .export-box textarea {
     width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 10px; font: .9rem/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     resize: vertical;
   }
-  .toggle.inline { margin-left: 0; }
 
-  @media (max-width: 560px) {
+  @media (max-width: 640px) {
     main { padding: 12px; }
     .ab-grid { grid-template-columns: 1fr; }
-    .ab-cell button { flex: 1; }
-    .ab-cell output { min-width: 6.5em; text-align: right; }
-    .toggle { margin-left: 0; }
-    .segment { grid-template-columns: auto 1fr auto; }
-    .segment .range { grid-column: 2 / 3; grid-row: 2; padding-left: 8px; }
+    .ab-cell .mark { flex: 1; }
+    .time-input { flex: 0 0 6.8em; }
+    .segment { grid-template-columns: auto 1fr auto; row-gap: 4px; }
+    .segment .range { grid-column: 2; grid-row: 2; padding-left: 8px; }
+    .segment .loops { grid-column: 3; grid-row: 2; }
     .segment .del-btn { grid-column: 3; grid-row: 1; }
   }
+  @media (hover: none) { .shortcuts { display: none; } }
 </style>
 </head>
 <body>
@@ -149,39 +178,74 @@
     <div id="placeholder" class="placeholder">貼上網址後按「載入」</div>
   </div>
 
-  <section class="panel" aria-label="A-B 標記">
+  <section class="panel" aria-label="A-B 編輯">
+    <div class="panel-head">
+      <div id="editLabel" class="edit-label">編輯：<strong>新區段</strong></div>
+      <label class="speed">速度
+        <select id="rateSelect" aria-label="播放速度">
+          <option value="0.25">0.25x</option>
+          <option value="0.5">0.5x</option>
+          <option value="0.75">0.75x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+        </select>
+      </label>
+    </div>
+
     <div class="ab-grid">
       <div class="ab-cell">
-        <button id="markA" type="button" disabled>標記 A</button>
-        <output id="aTime" class="mono">--:--.-</output>
+        <button id="markA" class="mark" type="button" disabled>標記 A</button>
+        <button id="aNudgeMinus" class="nudge" type="button" disabled aria-label="A 減 0.1 秒">−0.1</button>
+        <input id="aInput" class="time-input mono" type="text" inputmode="decimal" placeholder="--:--.-" disabled aria-label="A 點時間（mm:ss.s）">
+        <button id="aNudgePlus" class="nudge" type="button" disabled aria-label="A 加 0.1 秒">+0.1</button>
       </div>
       <div class="ab-cell">
-        <button id="markB" type="button" disabled>標記 B</button>
-        <output id="bTime" class="mono">--:--.-</output>
+        <button id="markB" class="mark" type="button" disabled>標記 B</button>
+        <button id="bNudgeMinus" class="nudge" type="button" disabled aria-label="B 減 0.1 秒">−0.1</button>
+        <input id="bInput" class="time-input mono" type="text" inputmode="decimal" placeholder="--:--.-" disabled aria-label="B 點時間（mm:ss.s）">
+        <button id="bNudgePlus" class="nudge" type="button" disabled aria-label="B 加 0.1 秒">+0.1</button>
       </div>
     </div>
+
     <div class="row2">
       <button id="saveSeg" type="button" class="save" disabled>＋ 存成區段</button>
       <button id="clearAB" type="button" disabled>清除 A-B</button>
+      <button id="newSeg" type="button" hidden>＋ 新區段</button>
+      <span class="spacer"></span>
       <label class="toggle"><input id="loopToggle" type="checkbox" checked> 啟用循環</label>
     </div>
     <div id="status" class="status">尚未載入影片</div>
+
+    <details class="shortcuts">
+      <summary>鍵盤快捷鍵</summary>
+      <dl>
+        <dt><kbd>A</kbd> <kbd>B</kbd></dt><dd>標記 A / B</dd>
+        <dt><kbd>Space</kbd></dt><dd>播放 / 暫停</dd>
+        <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>A 點 −0.1 / +0.1 秒</dd>
+        <dt><kbd>,</kbd> <kbd>.</kbd></dt><dd>B 點 −0.1 / +0.1 秒</dd>
+        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>上一個 / 下一個區段</dd>
+      </dl>
+    </details>
+    <div id="kbHint" class="kb-hint" hidden>鍵盤焦點目前在影片裡，點一下頁面空白處即可使用快捷鍵。</div>
   </section>
 
   <section class="panel" aria-label="區段清單">
-    <div class="seg-head">
+    <div class="panel-head">
       <h2 id="segTitle">區段</h2>
       <button id="exportBtn" type="button" disabled>匯出章節文案</button>
     </div>
     <ul id="segList" class="seg-list"></ul>
-    <div id="segEmpty" class="seg-empty">尚無區段。標記 A、B 後按「存成區段」即可儲存並命名。</div>
+    <div id="segEmpty" class="seg-empty">尚無區段。標記 A、B 後按「存成區段」即可儲存並命名。「次數」設 0 為無限循環，設 N 則播 N 遍後自動接下一段。</div>
 
     <div id="exportBox" class="export-box" hidden>
       <textarea id="exportText" rows="8" spellcheck="false" aria-label="章節文案"></textarea>
       <div class="row2">
         <button id="copyBtn" type="button" class="save">複製</button>
-        <label class="toggle inline"><input id="exportEnd" type="checkbox" checked> 顯示結束時間</label>
-        <button id="closeExport" type="button" style="margin-left:auto">關閉</button>
+        <label class="toggle"><input id="exportEnd" type="checkbox" checked> 顯示結束時間</label>
+        <span class="spacer"></span>
+        <button id="closeExport" type="button">關閉</button>
       </div>
     </div>
   </section>
@@ -195,9 +259,13 @@
   const POLL_MS = 100;            // 輪詢間隔
   const SEEK_COOLDOWN_MS = 350;   // seekTo 後短暫不檢查，避免 getCurrentTime 尚未更新造成連續 seek
   const MIN_SEGMENT = 0.3;        // A-B 最短長度（秒）
+  const NUDGE = 0.1;              // 微調幅度（秒）
+  const B_PREVIEW = 1.5;          // 微調 B 時，從 B 前幾秒開始試聽
   const ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const STORE_PREFIX = 'abplayer:video:';
   const STORE_LAST = 'abplayer:last';
+  const STORE_RATE = 'abplayer:rate';
+  const RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
 
   const ERROR_TEXT = {
     2:   '影片 ID 格式不正確，請確認網址。',
@@ -216,21 +284,23 @@
     videoId: null,
     draft: { a: null, b: null },  // 尚未存成區段的 A-B
     segments: [],                 // [{ id, name, a, b, loops }]
-    activeId: null,               // 目前循環中的區段；null 表示循環草稿 A-B
+    activeId: null,               // 目前選中（循環 / 編輯）的區段；null = 草稿
     loopEnabled: true,
+    rate: 1,
     pollTimer: null,
     seekBlockUntil: 0,
-    loopCount: 0
+    playCount: 0                  // 目前目標已完整播完的遍數
   };
 
   // ===== DOM =====
   const $ = (id) => document.getElementById(id);
   const el = {
-    form: $('loadForm'), input: $('urlInput'), msg: $('message'),
-    placeholder: $('placeholder'),
-    markA: $('markA'), markB: $('markB'), aTime: $('aTime'), bTime: $('bTime'),
-    saveSeg: $('saveSeg'), clearAB: $('clearAB'), loopToggle: $('loopToggle'),
-    status: $('status'),
+    form: $('loadForm'), input: $('urlInput'), msg: $('message'), placeholder: $('placeholder'),
+    editLabel: $('editLabel'), rateSelect: $('rateSelect'),
+    markA: $('markA'), markB: $('markB'), aInput: $('aInput'), bInput: $('bInput'),
+    aMinus: $('aNudgeMinus'), aPlus: $('aNudgePlus'), bMinus: $('bNudgeMinus'), bPlus: $('bNudgePlus'),
+    saveSeg: $('saveSeg'), clearAB: $('clearAB'), newSeg: $('newSeg'), loopToggle: $('loopToggle'),
+    status: $('status'), kbHint: $('kbHint'),
     segTitle: $('segTitle'), segList: $('segList'), segEmpty: $('segEmpty'),
     exportBtn: $('exportBtn'), exportBox: $('exportBox'), exportText: $('exportText'),
     exportEnd: $('exportEnd'), copyBtn: $('copyBtn'), closeExport: $('closeExport')
@@ -267,6 +337,23 @@
     return String(m).padStart(2, '0') + ':' + s.toFixed(1).padStart(4, '0');
   }
 
+  // 接受 mm:ss.s、h:mm:ss.s、純秒數；不合法回傳 null
+  function parseTime(raw) {
+    const s = String(raw).trim().replace('：', ':');
+    if (!s) return null;
+    const num = /^\d+(\.\d+)?$/;
+    if (num.test(s)) return Number(s);
+    const parts = s.split(':');
+    if (parts.length < 2 || parts.length > 3) return null;
+    const last = parts[parts.length - 1];
+    const heads = parts.slice(0, -1);
+    if (!num.test(last) || !heads.every(p => /^\d+$/.test(p))) return null;
+    if (Number(last) >= 60) return null;
+    if (parts.length === 3 && Number(parts[1]) >= 60) return null;
+    return parts.reduce((acc, p) => acc * 60 + Number(p), 0);
+  }
+
+  const round3 = (n) => Math.round(n * 1000) / 1000;
   const newId = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
   function showMessage(text, type = 'error') {
@@ -281,13 +368,19 @@
     el.status.classList.toggle('looping', looping);
   }
 
+  const usable = () => state.playerReady && !!state.videoId;
+  const isPlaying = () => usable() && state.player.getPlayerState() === YT.PlayerState.PLAYING;
+  function duration() {
+    try { const d = state.player.getDuration(); return d > 0 ? d : Infinity; } catch { return Infinity; }
+  }
+
   // ===== 儲存 =====
   function saveStore() {
     if (!state.videoId) return;
     try {
       localStorage.setItem(STORE_PREFIX + state.videoId,
         JSON.stringify({ videoId: state.videoId, segments: state.segments }));
-    } catch (err) {
+    } catch {
       showMessage('無法寫入瀏覽器儲存空間（可能是無痕模式或空間已滿），區段將不會被保存。', 'warn');
     }
   }
@@ -305,42 +398,55 @@
           name: typeof s.name === 'string' ? s.name : '',
           a: Number(s.a), b: Number(s.b),
           loops: Number.isInteger(s.loops) && s.loops >= 0 ? s.loops : 0
-        }));
+        }))
+        .sort((x, y) => x.a - y.a);
     } catch { return []; }
   }
 
-  function rememberLast(videoId) {
-    try { localStorage.setItem(STORE_LAST, videoId); } catch {}
-  }
-  function getLast() {
-    try { const v = localStorage.getItem(STORE_LAST); return v && ID_RE.test(v) ? v : null; }
-    catch { return null; }
-  }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
 
-  // ===== 循環目標 =====
+  // ===== 目標（目前編輯 / 循環的對象）=====
   function activeSegment() {
     return state.activeId ? state.segments.find(s => s.id === state.activeId) || null : null;
   }
-  // 回傳目前要循環的 {a, b, name?}；沒有則 null
+  // 編輯對象：選中的區段，否則草稿
+  function editTarget() { return activeSegment() || state.draft; }
+  // 循環對象：A、B 皆有效才算
   function loopTarget() {
-    const seg = activeSegment();
-    if (seg) return seg;
-    const d = state.draft;
-    if (d.a != null && d.b != null && d.b > d.a) return d;
-    return null;
+    const t = editTarget();
+    return t.a != null && t.b != null && t.b > t.a ? t : null;
   }
   function loopActive() { return state.loopEnabled && !!loopTarget(); }
 
   // ===== 畫面 =====
   function renderControls() {
-    const usable = state.playerReady && !!state.videoId;
-    const d = state.draft;
-    el.markA.disabled = !usable;
-    el.markB.disabled = !usable;
-    el.saveSeg.disabled = !usable || !(d.a != null && d.b != null);
-    el.clearAB.disabled = !usable || (d.a == null && d.b == null);
-    el.aTime.textContent = fmt(d.a);
-    el.bTime.textContent = fmt(d.b);
+    const ok = usable();
+    const seg = activeSegment();
+    const t = editTarget();
+
+    for (const b of [el.markA, el.markB]) b.disabled = !ok;
+    el.aMinus.disabled = el.aPlus.disabled = !ok || t.a == null;
+    el.bMinus.disabled = el.bPlus.disabled = !ok || t.b == null;
+    el.aInput.disabled = el.bInput.disabled = !ok;
+    if (document.activeElement !== el.aInput) el.aInput.value = t.a == null ? '' : fmt(t.a);
+    if (document.activeElement !== el.bInput) el.bInput.value = t.b == null ? '' : fmt(t.b);
+
+    el.saveSeg.hidden = el.clearAB.hidden = !!seg;
+    el.newSeg.hidden = !seg;
+    el.saveSeg.disabled = !ok || !(t.a != null && t.b != null);
+    el.clearAB.disabled = !ok || (t.a == null && t.b == null);
+
+    el.editLabel.textContent = '';
+    el.editLabel.append('編輯：');
+    const strong = document.createElement('strong');
+    strong.textContent = seg ? `「${seg.name || '未命名'}」` : '新區段（未儲存）';
+    el.editLabel.append(strong);
+  }
+
+  function segLabel(seg) {
+    const i = state.segments.indexOf(seg);
+    return seg.name.trim() || `區段 ${i + 1}`;
   }
 
   function renderSegments() {
@@ -361,7 +467,7 @@
       play.className = 'play-btn';
       play.textContent = '▶';
       play.title = '播放並循環此區段';
-      play.setAttribute('aria-label', `播放 ${seg.name || `區段 ${i + 1}`}`);
+      play.setAttribute('aria-label', `播放 ${segLabel(seg)}`);
       play.addEventListener('click', () => playSegment(seg.id));
 
       const name = document.createElement('input');
@@ -380,7 +486,7 @@
         seg.name = name.value.trim() || `區段 ${i + 1}`;
         name.value = seg.name;
         saveStore();
-        if (seg.id === state.activeId) updateLoopStatus();
+        if (seg.id === state.activeId) { renderControls(); updateLoopStatus(); }
       });
       name.addEventListener('keydown', (e) => { if (e.key === 'Enter') name.blur(); });
 
@@ -390,21 +496,61 @@
       const rb = document.createElement('span'); rb.className = 'b'; rb.textContent = fmt(seg.b);
       range.append(ra, ' – ', rb);
 
+      const loops = document.createElement('label');
+      loops.className = 'loops';
+      loops.title = '播放幾遍後自動接下一段；0 = 無限循環';
+      const li_ = document.createElement('input');
+      li_.type = 'number';
+      li_.min = '0'; li_.max = '99'; li_.step = '1';
+      li_.inputMode = 'numeric';
+      li_.value = String(seg.loops);
+      li_.setAttribute('aria-label', '循環次數（0 為無限）');
+      li_.addEventListener('change', () => {
+        let v = parseInt(li_.value, 10);
+        if (!isFinite(v) || v < 0) v = 0;
+        if (v > 99) v = 99;
+        seg.loops = v;
+        li_.value = String(v);
+        saveStore();
+        if (seg.id === state.activeId) updateLoopStatus();
+      });
+      li_.addEventListener('keydown', (e) => { if (e.key === 'Enter') li_.blur(); });
+      loops.append('次數', li_);
+
       const del = document.createElement('button');
       del.type = 'button';
       del.className = 'del-btn';
       del.textContent = '✕';
       del.title = '刪除此區段';
-      del.setAttribute('aria-label', `刪除 ${seg.name || `區段 ${i + 1}`}`);
+      del.setAttribute('aria-label', `刪除 ${segLabel(seg)}`);
       del.addEventListener('click', () => deleteSegment(seg.id));
 
-      li.append(play, name, range, del);
+      li.append(play, name, range, loops, del);
       el.segList.appendChild(li);
     });
   }
 
+  function renderAll() { renderControls(); renderSegments(); updateLoopStatus(); }
+
+  function updateLoopStatus() {
+    if (!state.videoId) return setStatus('尚未載入影片');
+    const seg = activeSegment();
+    const target = loopTarget();
+    if (!target) {
+      const t = editTarget();
+      if (t.a == null) return setStatus('按「標記 A」設定起點，或點選下方區段播放');
+      return setStatus('已設定 A，請在想結束的位置按「標記 B」');
+    }
+    const label = seg ? `「${segLabel(seg)}」` : '';
+    const range = `${fmt(target.a)} → ${fmt(target.b)}`;
+    if (!state.loopEnabled) return setStatus(`${label}${range}，循環已關閉`);
+    let count = '';
+    if (seg && seg.loops > 0) count = `，第 ${Math.min(state.playCount + 1, seg.loops)}/${seg.loops} 遍`;
+    else if (state.playCount) count = `，已重複 ${state.playCount} 次`;
+    setStatus(`循環中 ${label}${range}${count}`, true);
+  }
+
   // ===== 匯出章節文案 =====
-  // 章節時間用整秒：1:02、1:02:03（YouTube 慣用格式）
   function fmtChapter(sec) {
     const t = Math.max(0, Math.floor(sec));
     const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
@@ -420,10 +566,9 @@
     const lines = [];
     if (title) lines.push(title);
     lines.push(`https://youtu.be/${id}`, '');
-    state.segments.forEach((seg, i) => {
-      const name = seg.name.trim() || `區段 ${i + 1}`;
+    state.segments.forEach((seg) => {
       const time = withEnd ? `${fmtChapter(seg.a)} – ${fmtChapter(seg.b)}` : fmtChapter(seg.a);
-      lines.push(`${time} ${name}`);
+      lines.push(`${time} ${segLabel(seg)}`);
       lines.push(`https://youtu.be/${id}?t=${Math.floor(seg.a)}`, '');
     });
     return lines.join('\n').trimEnd() + '\n';
@@ -449,28 +594,6 @@
     setTimeout(() => { el.copyBtn.textContent = '複製'; }, 1800);
   }
 
-  function highlightActive() {
-    for (const li of el.segList.children) {
-      li.classList.toggle('active', li.dataset.id === state.activeId);
-    }
-  }
-
-  function updateLoopStatus() {
-    if (!state.videoId) return setStatus('尚未載入影片');
-    const seg = activeSegment();
-    const target = loopTarget();
-    if (!target) {
-      const d = state.draft;
-      if (d.a == null) return setStatus('按「標記 A」設定起點，或點選下方區段播放');
-      return setStatus('已設定 A，請在想結束的位置按「標記 B」');
-    }
-    const label = seg ? `「${seg.name}」` : '';
-    const range = `${fmt(target.a)} → ${fmt(target.b)}`;
-    if (!state.loopEnabled) return setStatus(`${label}${range}，循環已關閉`);
-    const n = state.loopCount ? `，已重複 ${state.loopCount} 次` : '';
-    setStatus(`循環中 ${label}${range}${n}`, true);
-  }
-
   // ===== 輪詢（只在 PLAYING 時執行）=====
   function startPolling() {
     if (state.pollTimer) return;
@@ -487,16 +610,39 @@
     if (performance.now() < state.seekBlockUntil) return;
     const t = state.player.getCurrentTime();
     if (typeof t !== 'number' || !isFinite(t)) return;
-    if (t >= loopTarget().b) jumpToA(true);
+    if (t >= loopTarget().b) onReachB();
   }
 
-  function jumpToA(countLoop) {
+  function seek(sec) {
+    state.seekBlockUntil = performance.now() + SEEK_COOLDOWN_MS;
+    state.player.seekTo(sec, true);
+  }
+
+  // 播到 B 點：依循環次數決定跳回 A 或接下一段
+  function onReachB() {
     const target = loopTarget();
     if (!target) return;
-    state.seekBlockUntil = performance.now() + SEEK_COOLDOWN_MS;
-    state.player.seekTo(target.a, true);
-    if (countLoop) state.loopCount++;
+    const seg = activeSegment();
+    if (seg && seg.loops > 0 && state.playCount + 1 >= seg.loops) {
+      advanceToNext(seg);
+      return;
+    }
+    state.playCount++;
+    seek(target.a);
     updateLoopStatus();
+  }
+
+  function advanceToNext(seg) {
+    const idx = state.segments.indexOf(seg);
+    const next = state.segments[idx + 1];
+    if (next) {
+      playSegment(next.id);
+    } else {
+      seek(seg.a);
+      state.player.pauseVideo();
+      state.playCount = 0;
+      setStatus(`「${segLabel(seg)}」已播完，後面沒有其他區段了`);
+    }
   }
 
   // 確認目前播放的是正式影片（而非廣告）
@@ -507,33 +653,84 @@
     return data.video_id === state.videoId && p.getDuration() > 0;
   }
 
+  // ===== A / B 設定（標記、微調、直接輸入共用）=====
+  // 回傳 true 表示成功
+  function setPoint(which, value, { preview = false } = {}) {
+    const t = editTarget();
+    const seg = activeSegment();
+    const dur = duration();
+    let v = round3(Math.min(Math.max(0, value), dur));
+
+    if (which === 'a') {
+      if (t.b != null && v > t.b - MIN_SEGMENT) {
+        showMessage(`A 必須早於 B（目前 B = ${fmt(t.b)}），且區段至少 ${MIN_SEGMENT} 秒。`, 'warn');
+        return false;
+      }
+    } else {
+      if (t.a == null) { showMessage('請先標記 A。', 'warn'); return false; }
+      if (v < t.a + MIN_SEGMENT) {
+        showMessage(`B 必須晚於 A（目前 A = ${fmt(t.a)}），且區段至少 ${MIN_SEGMENT} 秒。`, 'warn');
+        return false;
+      }
+    }
+
+    clearMessage();
+    t[which] = v;
+    state.playCount = 0;
+    if (seg) {
+      state.segments.sort((x, y) => x.a - y.a);
+      saveStore();
+    }
+    renderAll();
+
+    // 試聽：調 A 從 A 播，調 B 從 B 前一小段播
+    if (preview && isPlaying()) {
+      if (which === 'a') seek(t.a);
+      else if (t.a != null) seek(Math.max(t.a, t.b - B_PREVIEW));
+    }
+    return true;
+  }
+
+  function markPoint(which) {
+    if (!usable()) return;
+    const ok = setPoint(which, state.player.getCurrentTime());
+    // 標記 B 的當下已在 B 點，立即跳回 A
+    if (ok && which === 'b' && loopActive() && isPlaying()) seek(editTarget().a);
+  }
+
+  function nudge(which, delta) {
+    if (!usable()) return;
+    const t = editTarget();
+    if (t[which] == null) return;
+    setPoint(which, t[which] + delta, { preview: true });
+  }
+
+  function commitTimeInput(which, input) {
+    const t = editTarget();
+    const v = parseTime(input.value);
+    if (v == null) {
+      showMessage('時間格式不正確，請輸入 mm:ss.s（例如 01:02.5）或秒數。', 'warn');
+      input.value = t[which] == null ? '' : fmt(t[which]);
+      return;
+    }
+    if (!setPoint(which, v, { preview: true })) {
+      input.value = t[which] == null ? '' : fmt(t[which]);
+    }
+  }
+
   // ===== 區段操作 =====
   function saveDraftAsSegment() {
     const d = state.draft;
     if (d.a == null || d.b == null) return;
-    if (d.b - d.a < MIN_SEGMENT) {
-      showMessage(`B 必須晚於 A 至少 ${MIN_SEGMENT} 秒。`, 'warn');
-      return;
-    }
-    const seg = {
-      id: newId(),
-      name: `區段 ${state.segments.length + 1}`,
-      a: d.a,
-      b: d.b,
-      loops: 0
-    };
+    const seg = { id: newId(), name: `區段 ${state.segments.length + 1}`, a: d.a, b: d.b, loops: 0 };
     state.segments.push(seg);
     state.segments.sort((x, y) => x.a - y.a);
     state.draft = { a: null, b: null };
     state.activeId = seg.id;
-    state.loopCount = 0;
+    state.playCount = 0;
     saveStore();
     clearMessage();
-    renderControls();
-    renderSegments();
-    updateLoopStatus();
-
-    // 讓使用者直接輸入名稱
+    renderAll();
     const input = el.segList.querySelector(`li[data-id="${seg.id}"] .name`);
     if (input) { input.focus(); input.select(); }
   }
@@ -542,28 +739,56 @@
     const seg = state.segments.find(s => s.id === id);
     if (!seg || !state.playerReady) return;
     state.activeId = id;
-    state.loopCount = 0;
-    highlightActive();
-    state.seekBlockUntil = performance.now() + SEEK_COOLDOWN_MS;
-    state.player.seekTo(seg.a, true);
-    if (state.player.getPlayerState() !== YT.PlayerState.PLAYING) state.player.playVideo();
-    if (!state.loopEnabled) {
-      showMessage('循環目前已關閉，勾選「啟用循環」即可重複播放此區段。', 'info');
-    } else {
-      clearMessage();
-    }
-    updateLoopStatus();
+    state.playCount = 0;
+    seek(seg.a);
+    if (!isPlaying()) state.player.playVideo();
+    if (!state.loopEnabled) showMessage('循環目前已關閉，勾選「啟用循環」即可重複播放此區段。', 'info');
+    else clearMessage();
+    renderAll();
+    const li = el.segList.querySelector(`li[data-id="${id}"]`);
+    if (li && li.scrollIntoView) li.scrollIntoView({ block: 'nearest' });
+  }
+
+  function stepSegment(dir) {
+    if (!state.segments.length) return;
+    const idx = state.segments.findIndex(s => s.id === state.activeId);
+    let next;
+    if (idx < 0) next = dir > 0 ? 0 : state.segments.length - 1;
+    else next = Math.min(Math.max(idx + dir, 0), state.segments.length - 1);
+    playSegment(state.segments[next].id);
   }
 
   function deleteSegment(id) {
     const seg = state.segments.find(s => s.id === id);
     if (!seg) return;
-    if (!confirm(`確定要刪除「${seg.name}」？`)) return;
+    if (!confirm(`確定要刪除「${segLabel(seg)}」？`)) return;
     state.segments = state.segments.filter(s => s.id !== id);
-    if (state.activeId === id) { state.activeId = null; state.loopCount = 0; }
+    if (state.activeId === id) { state.activeId = null; state.playCount = 0; }
     saveStore();
-    renderSegments();
-    updateLoopStatus();
+    renderAll();
+  }
+
+  function startNewSegment() {
+    state.activeId = null;
+    state.draft = { a: null, b: null };
+    state.playCount = 0;
+    clearMessage();
+    renderAll();
+  }
+
+  // ===== 播放速度 =====
+  function applyRate() {
+    if (!state.playerReady) return;
+    try {
+      if (state.player.getPlaybackRate() !== state.rate) state.player.setPlaybackRate(state.rate);
+    } catch {}
+  }
+  function setRate(r) {
+    if (!RATES.includes(r)) return;
+    state.rate = r;
+    el.rateSelect.value = String(r);
+    lsSet(STORE_RATE, String(r));
+    applyRate();
   }
 
   // ===== 播放器 =====
@@ -589,6 +814,7 @@
       events: {
         onReady: onPlayerReady,
         onStateChange: onPlayerStateChange,
+        onPlaybackRateChange: onPlayerRateChange,
         onError: onPlayerError
       }
     });
@@ -597,9 +823,9 @@
   function onPlayerReady() {
     state.playerReady = true;
     el.placeholder.hidden = true;
-    // 若在播放器初始化期間使用者又換了影片
     const cur = (state.player.getVideoData() || {}).video_id;
     if (state.videoId && cur !== state.videoId) state.player.cueVideoById(state.videoId);
+    applyRate();
     setStatus('影片已就緒，請點擊影片開始播放');
     renderControls();
   }
@@ -610,37 +836,46 @@
       case S.PLAYING:
         if (isMainVideoPlaying()) {
           if (el.msg.classList.contains('error')) clearMessage();
+          applyRate(); // 換影片後速度可能被重設
           startPolling();
           updateLoopStatus();
         } else {
-          // 廣告或尚未切換到正式影片：不啟動循環
           stopPolling();
           setStatus('廣告播放中，正式影片開始後才會啟動循環');
         }
         break;
       case S.ENDED:
         stopPolling();
-        // B 設在片尾附近時，輪詢可能來不及觸發：直接跳回 A 繼續
+        // B 設在片尾附近時，輪詢可能來不及觸發
         if (loopActive()) {
-          jumpToA(true);
-          state.player.playVideo();
+          onReachB();
+          if (state.player.getPlayerState() !== S.PAUSED) state.player.playVideo();
         } else {
           setStatus('播放結束');
         }
         break;
       case S.PAUSED:
         stopPolling();
-        setStatus('已暫停');
+        if (!/已播完/.test(el.status.textContent)) setStatus('已暫停');
         break;
       default: // BUFFERING、CUED、UNSTARTED
         stopPolling();
     }
   }
 
+  // 使用者從 YouTube 齒輪選單改速度時同步
+  function onPlayerRateChange(e) {
+    const r = Number(e.data);
+    if (RATES.includes(r) && r !== state.rate) {
+      state.rate = r;
+      el.rateSelect.value = String(r);
+      lsSet(STORE_RATE, String(r));
+    }
+  }
+
   function onPlayerError(e) {
     stopPolling();
-    const text = ERROR_TEXT[e.data] || `播放器發生未知錯誤（代碼 ${e.data}）。`;
-    showMessage(text);
+    showMessage(ERROR_TEXT[e.data] || `播放器發生未知錯誤（代碼 ${e.data}）。`);
     setStatus('無法播放此影片');
   }
 
@@ -652,15 +887,13 @@
     state.draft = { a: null, b: null };
     state.segments = loadStore(videoId);
     state.activeId = null;
-    state.loopCount = 0;
-    rememberLast(videoId);
+    state.playCount = 0;
+    lsSet(STORE_LAST, videoId);
+    el.exportBox.hidden = true;
     renderControls();
     renderSegments();
 
-    if (!state.apiReady) {
-      setStatus('播放器載入中…');
-      return; // onYouTubeIframeAPIReady 會接手
-    }
+    if (!state.apiReady) { setStatus('播放器載入中…'); return; }
     if (!state.player) {
       setStatus('播放器載入中…');
       createPlayer(videoId);
@@ -669,7 +902,6 @@
       state.player.cueVideoById(videoId);
       setStatus('影片已就緒，請點擊影片開始播放');
     }
-    // 若 player 已建立但尚未 ready，onPlayerReady 會補 cue
   }
 
   // ===== 事件 =====
@@ -684,86 +916,110 @@
     loadVideo(id);
   });
 
-  // 標記 A / B 會切換回「草稿」模式：停止循環已存區段，改循環正在標記的 A-B
-  function enterDraftMode() {
-    if (state.activeId) { state.activeId = null; highlightActive(); }
-    state.loopCount = 0;
+  el.markA.addEventListener('click', () => markPoint('a'));
+  el.markB.addEventListener('click', () => markPoint('b'));
+  el.aMinus.addEventListener('click', () => nudge('a', -NUDGE));
+  el.aPlus.addEventListener('click', () => nudge('a', +NUDGE));
+  el.bMinus.addEventListener('click', () => nudge('b', -NUDGE));
+  el.bPlus.addEventListener('click', () => nudge('b', +NUDGE));
+
+  for (const [which, input] of [['a', el.aInput], ['b', el.bInput]]) {
+    input.addEventListener('change', () => commitTimeInput(which, input));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+      if (e.key === 'Escape') { const t = editTarget(); input.value = t[which] == null ? '' : fmt(t[which]); input.blur(); }
+    });
   }
 
-  el.markA.addEventListener('click', () => {
-    if (!state.playerReady) return;
-    const t = state.player.getCurrentTime();
-    const d = state.draft;
-    if (d.b != null && t > d.b - MIN_SEGMENT) {
-      showMessage(`A 必須早於 B（目前 B = ${fmt(d.b)}），且區段至少 ${MIN_SEGMENT} 秒。`, 'warn');
-      return;
-    }
-    clearMessage();
-    enterDraftMode();
-    d.a = t;
-    renderControls();
-    updateLoopStatus();
-  });
-
-  el.markB.addEventListener('click', () => {
-    if (!state.playerReady) return;
-    const d = state.draft;
-    if (d.a == null) {
-      showMessage('請先標記 A。', 'warn');
-      return;
-    }
-    const t = state.player.getCurrentTime();
-    if (t < d.a + MIN_SEGMENT) {
-      showMessage(`B 必須晚於 A（目前 A = ${fmt(d.a)}），且區段至少 ${MIN_SEGMENT} 秒。`, 'warn');
-      return;
-    }
-    clearMessage();
-    enterDraftMode();
-    d.b = t;
-    renderControls();
-    updateLoopStatus();
-    // 標記 B 的當下已在 B 點，立即跳回 A
-    if (loopActive() && state.player.getPlayerState() === YT.PlayerState.PLAYING) jumpToA(false);
-  });
-
   el.saveSeg.addEventListener('click', saveDraftAsSegment);
+  el.newSeg.addEventListener('click', startNewSegment);
+
+  el.clearAB.addEventListener('click', () => {
+    state.draft = { a: null, b: null };
+    state.playCount = 0;
+    clearMessage();
+    renderAll();
+  });
+
+  el.loopToggle.addEventListener('change', () => {
+    state.loopEnabled = el.loopToggle.checked;
+    state.playCount = 0;
+    if (state.loopEnabled) clearMessage();
+    updateLoopStatus();
+  });
+
+  el.rateSelect.addEventListener('change', () => setRate(Number(el.rateSelect.value)));
+
   el.exportBtn.addEventListener('click', openExport);
   el.copyBtn.addEventListener('click', copyExport);
   el.exportEnd.addEventListener('change', () => { el.exportText.value = buildChapterText(); });
   el.closeExport.addEventListener('click', () => { el.exportBox.hidden = true; });
 
-  el.clearAB.addEventListener('click', () => {
-    state.draft = { a: null, b: null };
-    state.loopCount = 0;
-    clearMessage();
-    renderControls();
-    updateLoopStatus();
+  // ===== 快捷鍵 =====
+  function isTypingTarget(node) {
+    if (!node) return false;
+    if (node.isContentEditable) return true;
+    if (node.tagName === 'TEXTAREA' || node.tagName === 'SELECT') return true;
+    if (node.tagName === 'INPUT') {
+      return !['checkbox', 'radio', 'button', 'submit', 'range'].includes(node.type);
+    }
+    return false;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+    if (isTypingTarget(e.target)) return;
+    if (!usable()) return;
+
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const actions = {
+      'a': () => markPoint('a'),
+      'b': () => markPoint('b'),
+      ' ': () => (isPlaying() ? state.player.pauseVideo() : state.player.playVideo()),
+      '[': () => nudge('a', -NUDGE),
+      ']': () => nudge('a', +NUDGE),
+      ',': () => nudge('b', -NUDGE),
+      '.': () => nudge('b', +NUDGE),
+      'ArrowUp': () => stepSegment(-1),
+      'ArrowDown': () => stepSegment(+1)
+    };
+    const fn = actions[key];
+    if (!fn) return;
+    e.preventDefault();   // 避免 Space 捲動頁面 / 觸發按鈕、方向鍵捲動
+    if (e.repeat && (key === 'a' || key === 'b' || key === ' ')) return;
+    fn();
   });
 
-  el.loopToggle.addEventListener('change', () => {
-    state.loopEnabled = el.loopToggle.checked;
-    state.loopCount = 0;
-    if (state.loopEnabled) clearMessage();
-    updateLoopStatus();
+  // 點了影片後鍵盤焦點會進到 iframe，頁面收不到按鍵：提示使用者
+  window.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (document.activeElement && document.activeElement.tagName === 'IFRAME' &&
+          matchMedia('(hover: hover)').matches) {
+        el.kbHint.hidden = false;
+      }
+    }, 0);
   });
+  window.addEventListener('focus', () => { el.kbHint.hidden = true; });
+  document.addEventListener('pointerdown', () => { el.kbHint.hidden = true; });
 
   // ===== 啟動 =====
   if (location.protocol === 'file:') {
     showMessage('偵測到以 file:// 開啟，YouTube 可能拒絕播放（錯誤 153）。建議在此資料夾執行 python3 -m http.server 後開啟 http://localhost:8000', 'warn');
   }
+  const savedRate = Number(lsGet(STORE_RATE));
+  if (RATES.includes(savedRate)) { state.rate = savedRate; el.rateSelect.value = String(savedRate); }
+
   renderControls();
   renderSegments();
   loadApi();
 
-  // 重新整理後自動回到上次的影片
-  const last = getLast();
-  if (last) {
+  const last = lsGet(STORE_LAST);
+  if (last && ID_RE.test(last)) {
     el.input.value = 'https://youtu.be/' + last;
     loadVideo(last);
   }
 
-  // 供除錯 / 後續階段使用
-  window.__ab = { state, parseVideoId, fmt };
+  window.__ab = { state, parseVideoId, parseTime, fmt };
 })();
 </script>
 </body>
