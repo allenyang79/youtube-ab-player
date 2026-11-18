@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube A-B 重複播放器</title>
+<style>
+  :root {
+    --bg: #111317;
+    --panel: #1b1e24;
+    --line: #2c3038;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --accent: #ff4e45;
+    --a-color: #4fc3f7;
+    --b-color: #ffb74d;
+    --ok: #81c995;
+    --warn: #fdd663;
+    --err: #f28b82;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.25rem; margin: 4px 0 14px; font-weight: 600; letter-spacing: .02em; }
+
+  button, input { font: inherit; color: inherit; }
+  button {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 10px 16px; cursor: pointer; min-height: 44px; touch-action: manipulation;
+  }
+  button:hover:not(:disabled) { border-color: #4a505a; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+  .load-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .load-bar input {
+    flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 10px 12px; min-height: 44px;
+  }
+  .load-bar input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .message { padding: 10px 12px; border-radius: var(--radius); margin-bottom: 12px; font-size: .95rem; }
+  .message.error { background: rgba(242,139,130,.12); border: 1px solid var(--err); color: var(--err); }
+  .message.warn  { background: rgba(253,214,99,.10); border: 1px solid var(--warn); color: var(--warn); }
+  .message.info  { background: rgba(129,201,149,.10); border: 1px solid var(--ok); color: var(--ok); }
+
+  .player-wrap {
+    position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .player-wrap iframe, .player-wrap #player { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .placeholder {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    color: var(--muted); font-size: .95rem; pointer-events: none;
+  }
+
+  .controls {
+    margin-top: 12px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 12px;
+  }
+  .ab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ab-cell { display: flex; align-items: center; gap: 10px; }
+  .ab-cell button { flex: 0 0 auto; }
+  .ab-cell output {
+    font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 1.15rem;
+  }
+  #markA { border-color: var(--a-color); color: var(--a-color); }
+  #markB { border-color: var(--b-color); color: var(--b-color); }
+  #aTime { color: var(--a-color); }
+  #bTime { color: var(--b-color); }
+
+  .row2 { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; min-height: 44px; }
+  .toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+  .status { margin-top: 10px; color: var(--muted); font-size: .9rem; min-height: 1.5em; }
+  .status.looping { color: var(--ok); }
+
+  @media (max-width: 560px) {
+    main { padding: 12px; }
+    .ab-grid { grid-template-columns: 1fr; }
+    .ab-cell button { flex: 1; }
+    .ab-cell output { min-width: 6.5em; text-align: right; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>YouTube A-B 重複播放器</h1>
+
+  <form id="loadForm" class="load-bar" autocomplete="off">
+    <input id="urlInput" type="text" inputmode="url" spellcheck="false"
+           placeholder="貼上 YouTube 網址或 11 碼影片 ID" aria-label="YouTube 網址或影片 ID">
+    <button type="submit" class="primary">載入</button>
+  </form>
+
+  <div id="message" class="message" role="alert" hidden></div>
+
+  <div class="player-wrap">
+    <div id="player"></div>
+    <div id="placeholder" class="placeholder">貼上網址後按「載入」</div>
+  </div>
+
+  <section class="controls" aria-label="A-B 循環控制">
+    <div class="ab-grid">
+      <div class="ab-cell">
+        <button id="markA" type="button" disabled>標記 A</button>
+        <output id="aTime">--:--.-</output>
+      </div>
+      <div class="ab-cell">
+        <button id="markB" type="button" disabled>標記 B</button>
+        <output id="bTime">--:--.-</output>
+      </div>
+    </div>
+    <div class="row2">
+      <label class="toggle"><input id="loopToggle" type="checkbox" checked> 啟用 A-B 循環</label>
+      <button id="clearAB" type="button" disabled>清除 A-B</button>
+    </div>
+    <div id="status" class="status">尚未載入影片</div>
+  </section>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  // ===== 常數 =====
+  const POLL_MS = 100;            // 輪詢間隔
+  const SEEK_COOLDOWN_MS = 350;   // seekTo 後短暫不檢查，避免 getCurrentTime 尚未更新造成連續 seek
+  const MIN_SEGMENT = 0.3;        // A-B 最短長度（秒）
+  const ID_RE = /^[A-Za-z0-9_-]{11}$/;
+
+  const ERROR_TEXT = {
+    2:   '影片 ID 格式不正確，請確認網址。',
+    5:   '播放器發生 HTML5 錯誤，請重新整理後再試。',
+    100: '找不到這部影片，可能已被刪除或設為私人。',
+    101: '影片擁有者不允許在其他網站嵌入播放，請改用其他影片。',
+    150: '影片擁有者不允許在其他網站嵌入播放，請改用其他影片。',
+    153: '播放器無法驗證網頁來源。請用 http(s) 開啟本頁（例如本機伺服器），不要直接以 file:// 開啟。'
+  };
+
+  // ===== 狀態 =====
+  const state = {
+    apiReady: false,
+    player: null,
+    playerReady: false,
+    videoId: null,
+    a: null,
+    b: null,
+    loopEnabled: true,
+    pollTimer: null,
+    seekBlockUntil: 0,
+    loopCount: 0
+  };
+
+  // ===== DOM =====
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    form: $('loadForm'), input: $('urlInput'), msg: $('message'),
+    placeholder: $('placeholder'),
+    markA: $('markA'), markB: $('markB'), aTime: $('aTime'), bTime: $('bTime'),
+    loopToggle: $('loopToggle'), clearAB: $('clearAB'), status: $('status')
+  };
+
+  // ===== 工具 =====
+  function parseVideoId(raw) {
+    const s = (raw || '').trim();
+    if (!s) return null;
+    if (ID_RE.test(s)) return s;
+    let url;
+    try { url = new URL(/^[a-z]+:\/\//i.test(s) ? s : 'https://' + s); }
+    catch { return null; }
+    const host = url.hostname.toLowerCase().replace(/^(www\.|m\.|music\.)/, '');
+    let id = null;
+    if (host === 'youtu.be') {
+      id = url.pathname.split('/')[1];
+    } else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+      if (url.pathname === '/watch') {
+        id = url.searchParams.get('v');
+      } else {
+        const m = url.pathname.match(/^\/(?:shorts|embed|live|v)\/([^/?#]+)/);
+        if (m) id = m[1];
+      }
+    }
+    return id && ID_RE.test(id) ? id : null;
+  }
+
+  function fmt(sec) {
+    if (sec == null || !isFinite(sec)) return '--:--.-';
+    const t = Math.max(0, Math.round(sec * 10) / 10);
+    const m = Math.floor(t / 60);
+    const s = t - m * 60;
+    return String(m).padStart(2, '0') + ':' + s.toFixed(1).padStart(4, '0');
+  }
+
+  function showMessage(text, type = 'error') {
+    el.msg.textContent = text;
+    el.msg.className = 'message ' + type;
+    el.msg.hidden = false;
+  }
+  function clearMessage() { el.msg.hidden = true; el.msg.textContent = ''; }
+
+  function setStatus(text, looping = false) {
+    el.status.textContent = text;
+    el.status.classList.toggle('looping', looping);
+  }
+
+  function hasAB() { return state.a != null && state.b != null && state.b > state.a; }
+  function loopActive() { return state.loopEnabled && hasAB(); }
+
+  function render() {
+    const usable = state.playerReady && !!state.videoId;
+    el.markA.disabled = !usable;
+    el.markB.disabled = !usable;
+    el.clearAB.disabled = !usable || (state.a == null && state.b == null);
+    el.aTime.textContent = fmt(state.a);
+    el.bTime.textContent = fmt(state.b);
+  }
+
+  // ===== 輪詢（只在 PLAYING 時執行）=====
+  function startPolling() {
+    if (state.pollTimer) return;
+    state.pollTimer = setInterval(poll, POLL_MS);
+  }
+  function stopPolling() {
+    if (!state.pollTimer) return;
+    clearInterval(state.pollTimer);
+    state.pollTimer = null;
+  }
+
+  function poll() {
+    if (!loopActive() || !state.playerReady) return;
+    if (performance.now() < state.seekBlockUntil) return;
+    const t = state.player.getCurrentTime();
+    if (typeof t !== 'number' || !isFinite(t)) return;
+    if (t >= state.b) jumpToA();
+  }
+
+  function jumpToA() {
+    state.seekBlockUntil = performance.now() + SEEK_COOLDOWN_MS;
+    state.player.seekTo(state.a, true);
+    state.loopCount++;
+    updateLoopStatus();
+  }
+
+  // 確認目前播放的是正式影片（而非廣告）
+  function isMainVideoPlaying() {
+    const p = state.player;
+    if (!p || typeof p.getVideoData !== 'function') return false;
+    const data = p.getVideoData() || {};
+    const dur = p.getDuration();
+    return data.video_id === state.videoId && dur > 0;
+  }
+
+  function updateLoopStatus() {
+    if (!state.videoId) return setStatus('尚未載入影片');
+    if (!hasAB()) {
+      if (state.a == null) return setStatus('播放中：按「標記 A」設定起點');
+      return setStatus('已設定 A，請在想結束的位置按「標記 B」');
+    }
+    if (!state.loopEnabled) return setStatus(`A-B 已設定（${fmt(state.a)} → ${fmt(state.b)}），循環已關閉`);
+    const n = state.loopCount ? `，已重複 ${state.loopCount} 次` : '';
+    setStatus(`循環中：${fmt(state.a)} → ${fmt(state.b)}${n}`, true);
+  }
+
+  // ===== 播放器 =====
+  function loadApi() {
+    window.onYouTubeIframeAPIReady = () => {
+      state.apiReady = true;
+      if (state.videoId && !state.player) createPlayer(state.videoId);
+    };
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.async = true;
+    s.onerror = () => showMessage('無法載入 YouTube 播放器。可能原因：網路連線中斷、被擋廣告外掛封鎖，或是在不允許外部腳本的預覽視窗中開啟（請下載檔案後用瀏覽器開啟）。');
+    document.head.appendChild(s);
+  }
+
+  function createPlayer(videoId) {
+    const playerVars = { playsinline: 1, rel: 0, modestbranding: 1 };
+    if (/^https?:$/.test(location.protocol)) playerVars.origin = location.origin;
+
+    state.player = new YT.Player('player', {
+      videoId,
+      playerVars,
+      events: {
+        onReady: onPlayerReady,
+        onStateChange: onPlayerStateChange,
+        onError: onPlayerError
+      }
+    });
+  }
+
+  function onPlayerReady() {
+    state.playerReady = true;
+    el.placeholder.hidden = true;
+    // 若在播放器初始化期間使用者又換了影片
+    const cur = (state.player.getVideoData() || {}).video_id;
+    if (state.videoId && cur !== state.videoId) state.player.cueVideoById(state.videoId);
+    setStatus('影片已就緒，請點擊影片開始播放');
+    render();
+  }
+
+  function onPlayerStateChange(e) {
+    const S = YT.PlayerState;
+    switch (e.data) {
+      case S.PLAYING:
+        if (isMainVideoPlaying()) {
+          clearMessage();
+          startPolling();
+          updateLoopStatus();
+        } else {
+          // 廣告或尚未切換到正式影片：不啟動循環
+          stopPolling();
+          setStatus('廣告播放中，正式影片開始後才會啟動循環');
+        }
+        break;
+      case S.ENDED:
+        stopPolling();
+        // B 設在片尾附近時，輪詢可能來不及觸發：直接跳回 A 繼續
+        if (loopActive()) {
+          jumpToA();
+          state.player.playVideo();
+        } else {
+          setStatus('播放結束');
+        }
+        break;
+      case S.PAUSED:
+        stopPolling();
+        setStatus('已暫停');
+        break;
+      default: // BUFFERING、CUED、UNSTARTED
+        stopPolling();
+    }
+  }
+
+  function onPlayerError(e) {
+    stopPolling();
+    const text = ERROR_TEXT[e.data] || `播放器發生未知錯誤（代碼 ${e.data}）。`;
+    showMessage(text);
+    setStatus('無法播放此影片');
+  }
+
+  // ===== 載入影片 =====
+  function loadVideo(videoId) {
+    stopPolling();
+    clearMessage();
+    state.videoId = videoId;
+    state.a = null;
+    state.b = null;
+    state.loopCount = 0;
+    render();
+
+    if (!state.apiReady) {
+      setStatus('播放器載入中…');
+      return; // onYouTubeIframeAPIReady 會接手
+    }
+    if (!state.player) {
+      setStatus('播放器載入中…');
+      createPlayer(videoId);
+    } else if (state.playerReady) {
+      // 用 cue 而非 load：不自動播放，手機上由使用者點擊開始
+      state.player.cueVideoById(videoId);
+      setStatus('影片已就緒，請點擊影片開始播放');
+    }
+    // 若 player 已建立但尚未 ready，onPlayerReady 會補 cue
+  }
+
+  // ===== 事件 =====
+  el.form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = parseVideoId(el.input.value);
+    if (!id) {
+      showMessage('無法辨識這個網址。支援 watch?v=、youtu.be/、shorts/、embed/ 或 11 碼影片 ID。');
+      return;
+    }
+    el.input.blur();
+    loadVideo(id);
+  });
+
+  el.markA.addEventListener('click', () => {
+    if (!state.playerReady) return;
+    const t = state.player.getCurrentTime();
+    if (state.b != null && t > state.b - MIN_SEGMENT) {
+      showMessage(`A 必須早於 B（目前 B = ${fmt(state.b)}），且區段至少 ${MIN_SEGMENT} 秒。`, 'warn');
+      return;
+    }
+    clearMessage();
+    state.a = t;
+    state.loopCount = 0;
+    render();
+    updateLoopStatus();
+  });
+
+  el.markB.addEventListener('click', () => {
+    if (!state.playerReady) return;
+    if (state.a == null) {
+      showMessage('請先標記 A。', 'warn');
+      return;
+    }
+    const t = state.player.getCurrentTime();
+    if (t < state.a + MIN_SEGMENT) {
+      showMessage(`B 必須晚於 A（目前 A = ${fmt(state.a)}），且區段至少 ${MIN_SEGMENT} 秒。`, 'warn');
+      return;
+    }
+    clearMessage();
+    state.b = t;
+    state.loopCount = 0;
+    render();
+    updateLoopStatus();
+    // 標記 B 的當下已在 B 點，立即跳回 A
+    if (loopActive() && state.player.getPlayerState() === YT.PlayerState.PLAYING) jumpToA();
+  });
+
+  el.loopToggle.addEventListener('change', () => {
+    state.loopEnabled = el.loopToggle.checked;
+    state.loopCount = 0;
+    updateLoopStatus();
+  });
+
+  el.clearAB.addEventListener('click', () => {
+    state.a = null;
+    state.b = null;
+    state.loopCount = 0;
+    clearMessage();
+    render();
+    updateLoopStatus();
+  });
+
+  // ===== 啟動 =====
+  if (location.protocol === 'file:') {
+    showMessage('偵測到以 file:// 開啟，YouTube 可能拒絕播放（錯誤 153）。建議在此資料夾執行 python3 -m http.server 後開啟 http://localhost:8000', 'warn');
+  }
+  render();
+  loadApi();
+
+  // 供除錯 / 後續階段使用
+  window.__ab = { state, parseVideoId, fmt };
+})();
+</script>
+</body>
+</html>
