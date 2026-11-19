@@ -142,7 +142,27 @@
   .segment .del-btn { width: 44px; padding: 0; color: var(--muted); }
   .segment .del-btn:hover { color: var(--err); border-color: var(--err); }
 
+  .seg-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+  .seg-tools button { padding: 10px 12px; }
+
   .export-box { margin-top: 12px; }
+  .export-hint { color: var(--muted); font-size: .85rem; margin: 0 0 6px; }
+
+  /* 對話框 */
+  .dlg {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line);
+    border-radius: 14px; padding: 18px; width: min(440px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px); overflow: auto;
+  }
+  .dlg::backdrop { background: rgba(0,0,0,.65); }
+  .dlg h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  .dlg-body { color: var(--muted); font-size: .95rem; }
+  .dlg-body p { margin: 0 0 6px; }
+  .dlg-body ul { margin: 6px 0 8px; padding-left: 1.2em; color: var(--text); font-size: .9rem; }
+  .dlg-body li .mono { color: var(--muted); }
+  .dlg-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .dlg-actions button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 2px; }
+  .dlg-actions button small { font-weight: 400; font-size: .82rem; opacity: .8; }
   .export-box textarea {
     width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 10px; font: .9rem/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -160,6 +180,7 @@
     .segment .range { grid-column: 2; grid-row: 2; padding-left: 8px; }
     .segment .loops { grid-column: 3; grid-row: 2; }
     .segment .del-btn { grid-column: 3; grid-row: 1; }
+    .seg-tools { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
   }
   @media (hover: none) { .shortcuts { display: none; } }
 </style>
@@ -245,22 +266,37 @@
   <section class="panel" aria-label="區段清單">
     <div class="panel-head">
       <h2 id="segTitle">區段</h2>
-      <button id="exportBtn" type="button" disabled>匯出章節文案</button>
+      <div class="seg-tools">
+        <button id="exportBtn" type="button" disabled>章節文案</button>
+        <button id="shareBtn" type="button" disabled>分享連結</button>
+        <button id="exportJsonBtn" type="button" disabled>匯出 JSON</button>
+        <button id="importJsonBtn" type="button">匯入 JSON</button>
+      </div>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
     </div>
     <ul id="segList" class="seg-list"></ul>
     <div id="segEmpty" class="seg-empty">尚無區段。標記 A、B 後按「存成區段」即可儲存並命名。「次數」設 0 為無限循環，設 N 則播 N 遍後自動接下一段。</div>
 
     <div id="exportBox" class="export-box" hidden>
+      <p id="exportHint" class="export-hint" hidden>開啟這個連結就能還原影片與所有區段（區段資料都在網址裡，不需登入）。</p>
       <textarea id="exportText" rows="8" spellcheck="false" aria-label="章節文案"></textarea>
       <div class="row2">
         <button id="copyBtn" type="button" class="save">複製</button>
-        <label class="toggle"><input id="exportEnd" type="checkbox" checked> 顯示結束時間</label>
+        <label id="exportEndWrap" class="toggle"><input id="exportEnd" type="checkbox" checked> 顯示結束時間</label>
         <span class="spacer"></span>
         <button id="closeExport" type="button">關閉</button>
       </div>
     </div>
   </section>
 </main>
+
+<dialog id="dlg" class="dlg" aria-labelledby="dlgTitle">
+  <form method="dialog">
+    <h3 id="dlgTitle"></h3>
+    <div id="dlgBody" class="dlg-body"></div>
+    <div id="dlgActions" class="dlg-actions"></div>
+  </form>
+</dialog>
 
 <script>
 (() => {
@@ -278,6 +314,10 @@
   const STORE_LAST = 'abplayer:last';
   const STORE_RATE = 'abplayer:rate';
   const RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+  const APP_TAG = 'youtube-ab-player';
+  const MAX_IMPORT = 200;           // 單次匯入區段上限
+  const MAX_IMPORT_BYTES = 1 << 20; // 匯入檔案大小上限 1 MB
+  const SAME_EPS = 0.05;            // A、B 都相差小於此值視為同一區段
 
   const ERROR_TEXT = {
     2:   '影片 ID 格式不正確，請確認網址。',
@@ -301,7 +341,8 @@
     rate: 1,
     pollTimer: null,
     seekBlockUntil: 0,
-    playCount: 0                  // 目前目標已完整播完的遍數
+    playCount: 0,                 // 目前目標已完整播完的遍數
+    boxMode: 'chapters'           // 文字框內容：'chapters' 章節文案 / 'share' 分享連結
   };
 
   // ===== DOM =====
@@ -315,7 +356,11 @@
     status: $('status'), kbHint: $('kbHint'),
     segTitle: $('segTitle'), segList: $('segList'), segEmpty: $('segEmpty'),
     exportBtn: $('exportBtn'), exportBox: $('exportBox'), exportText: $('exportText'),
-    exportEnd: $('exportEnd'), copyBtn: $('copyBtn'), closeExport: $('closeExport')
+    exportEnd: $('exportEnd'), exportEndWrap: $('exportEndWrap'), exportHint: $('exportHint'),
+    copyBtn: $('copyBtn'), closeExport: $('closeExport'),
+    shareBtn: $('shareBtn'), exportJsonBtn: $('exportJsonBtn'), importJsonBtn: $('importJsonBtn'),
+    importFile: $('importFile'),
+    dlg: $('dlg'), dlgTitle: $('dlgTitle'), dlgBody: $('dlgBody'), dlgActions: $('dlgActions')
   };
 
   // ===== 工具 =====
@@ -464,9 +509,9 @@
     el.segList.textContent = '';
     el.segTitle.textContent = state.segments.length ? `區段（${state.segments.length}）` : '區段';
     el.segEmpty.hidden = state.segments.length > 0 || !state.videoId;
-    el.exportBtn.disabled = state.segments.length === 0;
+    el.exportBtn.disabled = el.shareBtn.disabled = el.exportJsonBtn.disabled = state.segments.length === 0;
     if (!state.segments.length) el.exportBox.hidden = true;
-    else if (!el.exportBox.hidden) el.exportText.value = buildChapterText();
+    else if (!el.exportBox.hidden) el.exportText.value = boxText();
 
     state.segments.forEach((seg, i) => {
       const li = document.createElement('li');
@@ -491,7 +536,7 @@
       name.addEventListener('input', () => {
         seg.name = name.value;
         saveStore();
-        if (!el.exportBox.hidden) el.exportText.value = buildChapterText();
+        if (!el.exportBox.hidden) el.exportText.value = boxText();
       });
       name.addEventListener('change', () => {
         seg.name = name.value.trim() || `區段 ${i + 1}`;
@@ -585,11 +630,22 @@
     return lines.join('\n').trimEnd() + '\n';
   }
 
-  function openExport() {
+  function boxText() {
+    return state.boxMode === 'share' ? buildShareUrl() : buildChapterText();
+  }
+
+  function openBox(mode) {
     if (!state.segments.length) return;
-    el.exportText.value = buildChapterText();
+    state.boxMode = mode;
+    const share = mode === 'share';
+    el.exportText.value = boxText();
+    el.exportText.rows = share ? 4 : 8;
+    el.exportText.setAttribute('aria-label', share ? '分享連結' : '章節文案');
+    el.exportEndWrap.hidden = share;
+    el.exportHint.hidden = !share;
     el.exportBox.hidden = false;
-    el.copyBtn.textContent = '複製';
+    el.copyBtn.textContent = share ? '複製連結' : '複製';
+    if (share) { el.exportText.focus(); el.exportText.select(); }
   }
 
   async function copyExport() {
@@ -601,8 +657,277 @@
       el.exportText.select();
       try { ok = document.execCommand('copy'); } catch {}
     }
+    const label = state.boxMode === 'share' ? '複製連結' : '複製';
     el.copyBtn.textContent = ok ? '已複製 ✓' : '請手動複製';
-    setTimeout(() => { el.copyBtn.textContent = '複製'; }, 1800);
+    setTimeout(() => { el.copyBtn.textContent = label; }, 1800);
+  }
+
+  // ===== 對話框（多選一）=====
+  // body：字串 → 段落；{ list: [...] } → 清單（項目可為字串或 Node）
+  // options：[{ value, label, hint?, primary? }]，最後一個視為「取消」
+  function choose({ title, body = [], options }) {
+    const cancelValue = options[options.length - 1].value;
+    const dlg = el.dlg;
+    if (typeof dlg.showModal !== 'function') {
+      // 舊瀏覽器沒有 <dialog>：依序用 confirm 詢問
+      const text = body.filter(b => typeof b === 'string').join('\n');
+      for (const o of options.slice(0, -1)) {
+        if (confirm(`${title}\n\n${text}\n\n${o.label}${o.hint ? `（${o.hint}）` : ''}？`)) return Promise.resolve(o.value);
+      }
+      return Promise.resolve(cancelValue);
+    }
+    el.dlgTitle.textContent = title;
+    el.dlgBody.replaceChildren(...body.map((b) => {
+      if (typeof b === 'string') { const p = document.createElement('p'); p.textContent = b; return p; }
+      const ul = document.createElement('ul');
+      for (const item of b.list) { const li = document.createElement('li'); li.append(item); ul.appendChild(li); }
+      return ul;
+    }));
+    el.dlgActions.replaceChildren(...options.map((o) => {
+      const btn = document.createElement('button');
+      btn.type = 'submit';
+      btn.value = o.value;
+      if (o.primary) btn.className = 'primary';
+      const strong = document.createElement('strong');
+      strong.textContent = o.label;
+      btn.appendChild(strong);
+      if (o.hint) { const small = document.createElement('small'); small.textContent = o.hint; btn.appendChild(small); }
+      return btn;
+    }));
+    return new Promise((resolve) => {
+      dlg.returnValue = '';
+      dlg.addEventListener('close', () => resolve(dlg.returnValue || cancelValue), { once: true });
+      dlg.showModal();
+      const first = el.dlgActions.querySelector('button');
+      if (first) first.focus();
+    });
+  }
+
+  // ===== 匯入（JSON 檔與分享連結共用）=====
+  // 驗證並正規化外部來源的區段；回傳 { segments, skipped }
+  function sanitizeSegments(list) {
+    const out = [];
+    let skipped = 0;
+    const seenIds = new Set();
+    for (const s of list) {
+      if (!s || typeof s !== 'object' ||
+          typeof s.a !== 'number' || typeof s.b !== 'number' ||
+          !isFinite(s.a) || !isFinite(s.b) || s.a < 0 || s.b - s.a < MIN_SEGMENT - 1e-6) {
+        skipped++; continue;
+      }
+      let loops = 0;
+      if (s.loops != null) {
+        if (typeof s.loops !== 'number' || !isFinite(s.loops) || s.loops < 0) { skipped++; continue; }
+        loops = Math.min(99, Math.floor(s.loops));
+      }
+      if (s.name != null && typeof s.name !== 'string') { skipped++; continue; }
+      let id = typeof s.id === 'string' && /^[\w-]{1,40}$/.test(s.id) ? s.id : newId();
+      if (seenIds.has(id)) id = newId();
+      seenIds.add(id);
+      out.push({ id, name: (s.name || '').trim().slice(0, 60), a: round3(s.a), b: round3(s.b), loops });
+    }
+    out.sort((x, y) => x.a - y.a);
+    out.forEach((s, i) => { if (!s.name) s.name = `區段 ${i + 1}`; });
+    return { segments: out, skipped };
+  }
+
+  // 解析匯入的 JSON 文字；格式錯誤時丟出帶中文訊息的 Error
+  function parseImportJson(text) {
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error('這不是有效的 JSON 檔案。'); }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('檔案格式不符：最外層應為包含 videoId 與 segments 的物件。');
+    }
+    if (typeof data.videoId !== 'string' || !ID_RE.test(data.videoId)) {
+      throw new Error('檔案格式不符：videoId 缺少或不是有效的 11 碼影片 ID。');
+    }
+    if (!Array.isArray(data.segments)) throw new Error('檔案格式不符：segments 應為陣列。');
+    if (data.segments.length > MAX_IMPORT) throw new Error(`區段數量太多（${data.segments.length} 個），單次最多匯入 ${MAX_IMPORT} 個。`);
+    const { segments, skipped } = sanitizeSegments(data.segments);
+    if (!segments.length) {
+      throw new Error(data.segments.length
+        ? `檔案中的 ${data.segments.length} 個區段格式都不正確（需要 a、b 秒數，且 B 至少比 A 晚 ${MIN_SEGMENT} 秒）。`
+        : '檔案中沒有任何區段。');
+    }
+    return { videoId: data.videoId, segments, skipped };
+  }
+
+  const sameSegment = (x, y) => Math.abs(x.a - y.a) < SAME_EPS && Math.abs(x.b - y.b) < SAME_EPS;
+
+  function segPreview(segs) {
+    const MAX = 6;
+    const items = segs.slice(0, MAX).map((s) => {
+      const frag = document.createDocumentFragment();
+      const range = document.createElement('span');
+      range.className = 'mono';
+      range.textContent = `${fmt(s.a)}–${fmt(s.b)}`;
+      frag.append(s.name + ' ', range);
+      return frag;
+    });
+    if (segs.length > MAX) items.push(`…還有 ${segs.length - MAX} 個`);
+    return { list: items };
+  }
+
+  // 把區段匯入 videoId；必要時切換影片，並在本機已有區段時詢問合併或取代
+  async function importSegments(videoId, incoming, { source, skipped = 0, askSwitch = true }) {
+    if (videoId !== state.videoId) {
+      if (state.videoId && askSwitch) {
+        const go = await choose({
+          title: '切換到另一部影片？',
+          body: [`${source}的區段屬於另一部影片（${videoId}），不是目前播放的影片。`],
+          options: [
+            { value: 'go', label: '切換影片並匯入', primary: true },
+            { value: 'cancel', label: '取消' }
+          ]
+        });
+        if (go !== 'go') return;
+      }
+      el.input.value = 'https://youtu.be/' + videoId;
+      loadVideo(videoId);
+    }
+
+    const existing = state.segments;
+    const fresh = incoming.filter(s => !existing.some(e => sameSegment(e, s)));
+    const dup = incoming.length - fresh.length;
+    const skippedNote = skipped ? `，另有 ${skipped} 個格式不正確已略過` : '';
+
+    let mode = 'replace';
+    if (existing.length) {
+      if (!fresh.length) {
+        showMessage(`${source}的 ${incoming.length} 個區段本機都已經有了，沒有變更${skippedNote}。`, 'info');
+        return;
+      }
+      const body = [`${source}有 ${incoming.length} 個區段：`, segPreview(incoming),
+        `這部影片在本機已有 ${existing.length} 個區段` + (dup ? `，其中 ${dup} 個與匯入的相同。` : '。')];
+      mode = await choose({
+        title: '匯入區段',
+        body,
+        options: [
+          { value: 'merge', label: '合併', primary: true,
+            hint: `保留本機 ${existing.length} 個，新增 ${fresh.length} 個` + (dup ? `（略過 ${dup} 個重複）` : '') },
+          { value: 'replace', label: '取代',
+            hint: `刪除本機 ${existing.length} 個，改用匯入的 ${incoming.length} 個` },
+          { value: 'cancel', label: '不匯入', hint: '保留本機區段，不做任何變更' }
+        ]
+      });
+      if (mode === 'cancel') { showMessage(`已取消匯入，保留本機的 ${existing.length} 個區段。`, 'info'); return; }
+    }
+
+    let added;
+    if (mode === 'merge') {
+      const ids = new Set(existing.map(s => s.id));
+      const extra = fresh.map(s => (ids.has(s.id) ? { ...s, id: newId() } : s));
+      state.segments = existing.concat(extra).sort((x, y) => x.a - y.a);
+      added = extra.length;
+    } else {
+      state.segments = incoming.slice();
+      added = incoming.length;
+      if (!activeSegment()) state.activeId = null;
+    }
+    state.playCount = 0;
+    saveStore();
+    renderAll();
+    const verb = mode === 'merge' ? `已合併：新增 ${added} 個區段` + (dup ? `，略過 ${dup} 個重複` : '')
+                                  : `已從${source}匯入 ${added} 個區段`;
+    showMessage(verb + skippedNote + '。', 'info');
+  }
+
+  // ===== 匯出 / 匯入 JSON =====
+  function exportJson() {
+    if (!state.videoId || !state.segments.length) return;
+    let title = '';
+    try { title = (state.player && state.player.getVideoData().title) || ''; } catch {}
+    const data = {
+      app: APP_TAG,
+      version: 1,
+      videoId: state.videoId,
+      title,
+      exportedAt: new Date().toISOString(),
+      segments: state.segments.map(({ id, name, a, b, loops }) => ({ id, name, a, b, loops }))
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2) + '\n'], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `abplayer-${state.videoId}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  async function importJsonFile(file) {
+    if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) { showMessage('檔案太大（超過 1 MB），這不像是本工具匯出的區段檔。'); return; }
+    let parsed;
+    try {
+      parsed = parseImportJson(await file.text());
+    } catch (err) {
+      showMessage('無法匯入「' + file.name + '」：' + err.message);
+      return;
+    }
+    await importSegments(parsed.videoId, parsed.segments, { source: '檔案', skipped: parsed.skipped });
+  }
+
+  // ===== 分享連結（區段編碼在網址 hash）=====
+  // 格式：#v=<影片ID>&s=<a>,<b>,<次數>,<名稱>;<a>,<b>,<次數>,<名稱>…（名稱經 encodeURIComponent）
+  function buildShareUrl() {
+    const segs = state.segments
+      .map(s => [round3(s.a), round3(s.b), s.loops, encodeURIComponent(s.name)].join(','))
+      .join(';');
+    return location.href.split('#')[0] + `#v=${state.videoId}&s=${segs}`;
+  }
+
+  // 回傳 null（不是分享連結）、{ error } 或 { videoId, segments, skipped }
+  function parseShareHash(hash) {
+    const h = String(hash || '').replace(/^#/, '');
+    if (!h) return null;
+    const params = {};
+    for (const part of h.split('&')) {
+      const i = part.indexOf('=');
+      if (i > 0) params[part.slice(0, i)] = part.slice(i + 1);
+    }
+    if (params.v == null) return null;
+    if (!ID_RE.test(params.v)) return { error: '分享連結中的影片 ID 不正確，無法開啟。' };
+    const num = (x) => (typeof x === 'string' && /^\d+(\.\d+)?$/.test(x) ? Number(x) : NaN);
+    const raw = [];
+    let bad = 0;
+    for (const item of (params.s || '').split(';')) {
+      if (!item) continue;
+      const [a, b, loops, name = ''] = item.split(',');
+      let n;
+      try { n = decodeURIComponent(name); } catch { bad++; continue; }
+      raw.push({ a: num(a), b: num(b), loops: loops ? num(loops) : 0, name: n });
+    }
+    if (raw.length > MAX_IMPORT) { bad += raw.length - MAX_IMPORT; raw.length = MAX_IMPORT; }
+    const { segments, skipped } = sanitizeSegments(raw);
+    return { videoId: params.v, segments, skipped: skipped + bad };
+  }
+
+  function clearHash() {
+    if (!location.hash) return;
+    try { history.replaceState(null, '', location.href.split('#')[0]); } catch {}
+  }
+
+  async function handleShare(share) {
+    clearHash(); // 處理過就移除，避免重新整理時再問一次
+    if (share.error) { showMessage(share.error); return; }
+    if (share.videoId !== state.videoId) {
+      el.input.value = 'https://youtu.be/' + share.videoId;
+      loadVideo(share.videoId);
+    }
+    if (share.segments.length) {
+      await importSegments(share.videoId, share.segments, { source: '分享連結', skipped: share.skipped, askSwitch: false });
+    } else if (share.skipped) {
+      showMessage(`分享連結中的 ${share.skipped} 個區段格式不正確，已略過。`, 'warn');
+    }
+  }
+
+  // 使用者把分享連結貼到上方輸入框時也能還原
+  function shareFromInput(raw) {
+    const s = (raw || '').trim();
+    const i = s.indexOf('#');
+    return i >= 0 ? parseShareHash(s.slice(i)) : null;
   }
 
   // ===== 輪詢（只在 PLAYING 時執行）=====
@@ -918,6 +1243,8 @@
   // ===== 事件 =====
   el.form.addEventListener('submit', (e) => {
     e.preventDefault();
+    const share = shareFromInput(el.input.value);
+    if (share) { el.input.blur(); handleShare(share); return; }
     const id = parseVideoId(el.input.value);
     if (!id) {
       showMessage('無法辨識這個網址。支援 watch?v=、youtu.be/、shorts/、embed/ 或 11 碼影片 ID。');
@@ -960,9 +1287,21 @@
 
   el.rateSelect.addEventListener('change', () => setRate(Number(el.rateSelect.value)));
 
-  el.exportBtn.addEventListener('click', openExport);
+  el.exportBtn.addEventListener('click', () => openBox('chapters'));
+  el.shareBtn.addEventListener('click', () => openBox('share'));
   el.copyBtn.addEventListener('click', copyExport);
-  el.exportEnd.addEventListener('change', () => { el.exportText.value = buildChapterText(); });
+  el.exportEnd.addEventListener('change', () => { el.exportText.value = boxText(); });
+  el.exportJsonBtn.addEventListener('click', exportJson);
+  el.importJsonBtn.addEventListener('click', () => el.importFile.click());
+  el.importFile.addEventListener('change', () => {
+    const file = el.importFile.files && el.importFile.files[0];
+    el.importFile.value = ''; // 允許再次選同一個檔案
+    importJsonFile(file);
+  });
+  window.addEventListener('hashchange', () => {
+    const share = parseShareHash(location.hash);
+    if (share) handleShare(share);
+  });
   el.closeExport.addEventListener('click', () => { el.exportBox.hidden = true; });
 
   // ===== 快捷鍵 =====
@@ -978,6 +1317,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+    if (el.dlg.open) return;
     if (isTypingTarget(e.target)) return;
     if (!usable()) return;
 
@@ -1028,13 +1368,17 @@
   renderSegments();
   loadApi();
 
+  // 分享連結優先；否則載入上次的影片
+  const initialShare = parseShareHash(location.hash);
   const last = lsGet(STORE_LAST);
-  if (last && ID_RE.test(last)) {
+  if (initialShare) {
+    handleShare(initialShare);
+  } else if (last && ID_RE.test(last)) {
     el.input.value = 'https://youtu.be/' + last;
     loadVideo(last);
   }
 
-  window.__ab = { state, parseVideoId, parseTime, fmt };
+  window.__ab = { state, parseVideoId, parseTime, fmt, parseShareHash, parseImportJson, buildShareUrl };
 })();
 </script>
 </body>
