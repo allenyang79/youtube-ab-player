@@ -79,17 +79,18 @@
 
   .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 
-  .ab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .ab-cell { display: flex; align-items: center; gap: 6px; }
+  .ab-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .ab-cell { display: flex; align-items: center; gap: 8px; }
   .ab-cell .mark { flex: 0 0 auto; }
-  .nudge { width: 52px; padding: 0; font-size: .85rem; flex: 0 0 auto; }
+  .adjust { display: flex; align-items: center; gap: 6px; }
+  .nudge { width: 50px; padding: 0; font-size: .85rem; flex: 0 0 auto; }
+  .point-a .mark, .point-a .nudge { border-color: var(--a-color); color: var(--a-color); }
+  .point-b .mark, .point-b .nudge { border-color: var(--b-color); color: var(--b-color); }
   .time-input {
     width: 7.2em; min-width: 0; text-align: center; font-size: 1.05rem;
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
     padding: 8px 4px; min-height: 44px;
   }
-  #markA, #aNudgeMinus, #aNudgePlus { border-color: var(--a-color); color: var(--a-color); }
-  #markB, #bNudgeMinus, #bNudgePlus { border-color: var(--b-color); color: var(--b-color); }
   #aInput { color: var(--a-color); }
   #bInput { color: var(--b-color); }
 
@@ -150,9 +151,11 @@
 
   @media (max-width: 640px) {
     main { padding: 12px; }
-    .ab-grid { grid-template-columns: 1fr; }
-    .ab-cell .mark { flex: 1; }
-    .time-input { flex: 0 0 6.8em; }
+    .ab-cell { flex-wrap: wrap; gap: 6px; }
+    .ab-cell .mark { flex: 1 1 100%; }
+    .adjust { flex: 1 1 100%; gap: 5px; }
+    .adjust .nudge { flex: 1 1 0; width: auto; min-width: 0; }
+    .adjust .time-input { flex: 0 0 6.4em; }
     .segment { grid-template-columns: auto 1fr auto; row-gap: 4px; }
     .segment .range { grid-column: 2; grid-row: 2; padding-left: 8px; }
     .segment .loops { grid-column: 3; grid-row: 2; }
@@ -195,17 +198,25 @@
     </div>
 
     <div class="ab-grid">
-      <div class="ab-cell">
+      <div class="ab-cell point-a">
         <button id="markA" class="mark" type="button" disabled>標記 A</button>
-        <button id="aNudgeMinus" class="nudge" type="button" disabled aria-label="A 減 0.1 秒">−0.1</button>
-        <input id="aInput" class="time-input mono" type="text" inputmode="decimal" placeholder="--:--.-" disabled aria-label="A 點時間（mm:ss.s）">
-        <button id="aNudgePlus" class="nudge" type="button" disabled aria-label="A 加 0.1 秒">+0.1</button>
+        <div class="adjust">
+          <button class="nudge" data-point="a" data-delta="-1" type="button" disabled aria-label="A 減 1 秒">−1</button>
+          <button class="nudge" data-point="a" data-delta="-0.1" type="button" disabled aria-label="A 減 0.1 秒">−0.1</button>
+          <input id="aInput" class="time-input mono" type="text" inputmode="decimal" placeholder="--:--.-" disabled aria-label="A 點時間（mm:ss.s）">
+          <button class="nudge" data-point="a" data-delta="0.1" type="button" disabled aria-label="A 加 0.1 秒">+0.1</button>
+          <button class="nudge" data-point="a" data-delta="1" type="button" disabled aria-label="A 加 1 秒">+1</button>
+        </div>
       </div>
-      <div class="ab-cell">
+      <div class="ab-cell point-b">
         <button id="markB" class="mark" type="button" disabled>標記 B</button>
-        <button id="bNudgeMinus" class="nudge" type="button" disabled aria-label="B 減 0.1 秒">−0.1</button>
-        <input id="bInput" class="time-input mono" type="text" inputmode="decimal" placeholder="--:--.-" disabled aria-label="B 點時間（mm:ss.s）">
-        <button id="bNudgePlus" class="nudge" type="button" disabled aria-label="B 加 0.1 秒">+0.1</button>
+        <div class="adjust">
+          <button class="nudge" data-point="b" data-delta="-1" type="button" disabled aria-label="B 減 1 秒">−1</button>
+          <button class="nudge" data-point="b" data-delta="-0.1" type="button" disabled aria-label="B 減 0.1 秒">−0.1</button>
+          <input id="bInput" class="time-input mono" type="text" inputmode="decimal" placeholder="--:--.-" disabled aria-label="B 點時間（mm:ss.s）">
+          <button class="nudge" data-point="b" data-delta="0.1" type="button" disabled aria-label="B 加 0.1 秒">+0.1</button>
+          <button class="nudge" data-point="b" data-delta="1" type="button" disabled aria-label="B 加 1 秒">+1</button>
+        </div>
       </div>
     </div>
 
@@ -223,8 +234,8 @@
       <dl>
         <dt><kbd>A</kbd> <kbd>B</kbd></dt><dd>標記 A / B</dd>
         <dt><kbd>Space</kbd></dt><dd>播放 / 暫停</dd>
-        <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>A 點 −0.1 / +0.1 秒</dd>
-        <dt><kbd>,</kbd> <kbd>.</kbd></dt><dd>B 點 −0.1 / +0.1 秒</dd>
+        <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>A 點 −0.1 / +0.1 秒（加 <kbd>Shift</kbd> 為 ±1 秒）</dd>
+        <dt><kbd>,</kbd> <kbd>.</kbd></dt><dd>B 點 −0.1 / +0.1 秒（加 <kbd>Shift</kbd> 為 ±1 秒）</dd>
         <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>上一個 / 下一個區段</dd>
       </dl>
     </details>
@@ -260,6 +271,7 @@
   const SEEK_COOLDOWN_MS = 350;   // seekTo 後短暫不檢查，避免 getCurrentTime 尚未更新造成連續 seek
   const MIN_SEGMENT = 0.3;        // A-B 最短長度（秒）
   const NUDGE = 0.1;              // 微調幅度（秒）
+  const NUDGE_BIG = 1;            // 大幅微調（秒）
   const B_PREVIEW = 1.5;          // 微調 B 時，從 B 前幾秒開始試聽
   const ID_RE = /^[A-Za-z0-9_-]{11}$/;
   const STORE_PREFIX = 'abplayer:video:';
@@ -298,7 +310,7 @@
     form: $('loadForm'), input: $('urlInput'), msg: $('message'), placeholder: $('placeholder'),
     editLabel: $('editLabel'), rateSelect: $('rateSelect'),
     markA: $('markA'), markB: $('markB'), aInput: $('aInput'), bInput: $('bInput'),
-    aMinus: $('aNudgeMinus'), aPlus: $('aNudgePlus'), bMinus: $('bNudgeMinus'), bPlus: $('bNudgePlus'),
+    nudges: Array.from(document.querySelectorAll('.nudge[data-point]')),
     saveSeg: $('saveSeg'), clearAB: $('clearAB'), newSeg: $('newSeg'), loopToggle: $('loopToggle'),
     status: $('status'), kbHint: $('kbHint'),
     segTitle: $('segTitle'), segList: $('segList'), segEmpty: $('segEmpty'),
@@ -426,8 +438,7 @@
     const t = editTarget();
 
     for (const b of [el.markA, el.markB]) b.disabled = !ok;
-    el.aMinus.disabled = el.aPlus.disabled = !ok || t.a == null;
-    el.bMinus.disabled = el.bPlus.disabled = !ok || t.b == null;
+    for (const btn of el.nudges) btn.disabled = !ok || t[btn.dataset.point] == null;
     el.aInput.disabled = el.bInput.disabled = !ok;
     if (document.activeElement !== el.aInput) el.aInput.value = t.a == null ? '' : fmt(t.a);
     if (document.activeElement !== el.bInput) el.bInput.value = t.b == null ? '' : fmt(t.b);
@@ -918,10 +929,9 @@
 
   el.markA.addEventListener('click', () => markPoint('a'));
   el.markB.addEventListener('click', () => markPoint('b'));
-  el.aMinus.addEventListener('click', () => nudge('a', -NUDGE));
-  el.aPlus.addEventListener('click', () => nudge('a', +NUDGE));
-  el.bMinus.addEventListener('click', () => nudge('b', -NUDGE));
-  el.bPlus.addEventListener('click', () => nudge('b', +NUDGE));
+  for (const btn of el.nudges) {
+    btn.addEventListener('click', () => nudge(btn.dataset.point, Number(btn.dataset.delta)));
+  }
 
   for (const [which, input] of [['a', el.aInput], ['b', el.bInput]]) {
     input.addEventListener('change', () => commitTimeInput(which, input));
@@ -980,6 +990,11 @@
       ']': () => nudge('a', +NUDGE),
       ',': () => nudge('b', -NUDGE),
       '.': () => nudge('b', +NUDGE),
+      // Shift + 同一顆鍵 = ±1 秒
+      '{': () => nudge('a', -NUDGE_BIG),
+      '}': () => nudge('a', +NUDGE_BIG),
+      '<': () => nudge('b', -NUDGE_BIG),
+      '>': () => nudge('b', +NUDGE_BIG),
       'ArrowUp': () => stepSegment(-1),
       'ArrowDown': () => stepSegment(+1)
     };
